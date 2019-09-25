@@ -5346,9 +5346,12 @@ xmlFAParseBranch(xmlRegParserCtxtPtr ctxt, xmlRegStatePtr to) {
 
     previous = ctxt->state;
     ret = xmlFAParsePiece(ctxt);
-    if (ret != 0) {
+    if (ret == 0) {
+        /* Empty branch */
+	xmlFAGenerateEpsilonTransition(ctxt, previous, to);
+    } else {
 	if (xmlFAGenerateTransitions(ctxt, previous,
-	        (CUR=='|' || CUR==')') ? to : NULL, ctxt->atom) < 0)
+	        (CUR=='|' || CUR==')' || CUR==0) ? to : NULL, ctxt->atom) < 0)
 	    return(-1);
 	previous = ctxt->state;
 	ctxt->atom = NULL;
@@ -5357,7 +5360,8 @@ xmlFAParseBranch(xmlRegParserCtxtPtr ctxt, xmlRegStatePtr to) {
 	ret = xmlFAParsePiece(ctxt);
 	if (ret != 0) {
 	    if (xmlFAGenerateTransitions(ctxt, previous,
-	            (CUR=='|' || CUR==')') ? to : NULL, ctxt->atom) < 0)
+	            (CUR=='|' || CUR==')' || CUR==0) ? to : NULL,
+                    ctxt->atom) < 0)
 		    return(-1);
 	    previous = ctxt->state;
 	    ctxt->atom = NULL;
@@ -5394,10 +5398,6 @@ xmlFAParseRegExp(xmlRegParserCtxtPtr ctxt, int top) {
     end = ctxt->state;
     while ((CUR == '|') && (ctxt->error == 0)) {
 	NEXT;
-	if (CUR == 0) {
-	    ERROR("expecting a branch after |")
-	    return;
-	}
 	ctxt->state = start;
 	ctxt->end = NULL;
 	xmlFAParseBranch(ctxt, end);
