@@ -64,22 +64,27 @@ XMLPUBFUN void XMLCALL
 			xmlLockLibrary	(void);
 XMLPUBFUN void XMLCALL
 			xmlUnlockLibrary(void);
+XML_DEPRECATED
 XMLPUBFUN int XMLCALL
 			xmlGetThreadId	(void);
+XML_DEPRECATED
 XMLPUBFUN int XMLCALL
 			xmlIsMainThread	(void);
 XML_DEPRECATED
 XMLPUBFUN void XMLCALL
 			xmlCleanupThreads(void);
+XML_DEPRECATED
 XMLPUBFUN xmlGlobalStatePtr XMLCALL
 			xmlGetGlobalState(void);
 
+/** DOC_DISABLE */
 #if defined(LIBXML_THREAD_ENABLED) && defined(_WIN32) && \
     !defined(HAVE_COMPILER_TLS) && defined(LIBXML_STATIC_FOR_DLL)
 int XMLCALL
 xmlDllMain(void *hinstDLL, unsigned long fdwReason,
            void *lpvReserved);
 #endif
+/** DOC_ENABLE */
 
 #ifdef __cplusplus
 }
