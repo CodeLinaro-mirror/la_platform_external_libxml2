@@ -1561,9 +1561,6 @@ xmlFAGenerateTransitions(xmlRegParserCtxtPtr ctxt, xmlRegStatePtr from,
 	 * this is a subexpression handling one should not need to
 	 * create a new node except for XML_REGEXP_QUANT_RANGE.
 	 */
-	if (xmlRegAtomPush(ctxt, atom) < 0) {
-	    return(-1);
-	}
 	if ((to != NULL) && (atom->stop != to) &&
 	    (atom->quant != XML_REGEXP_QUANT_RANGE)) {
 	    /*
@@ -1645,8 +1642,10 @@ xmlFAGenerateTransitions(xmlRegParserCtxtPtr ctxt, xmlRegStatePtr from,
 		    copy->max = 0;
 
 		    if (xmlFAGenerateTransitions(ctxt, atom->start, NULL, copy)
-		        < 0)
+		        < 0) {
+                        xmlRegFreeAtom(copy);
 			return(-1);
+                    }
 		    inter = ctxt->state;
 		    counter = xmlRegGetCounter(ctxt);
 		    ctxt->counters[counter].min = atom->min - 1;
@@ -1689,6 +1688,8 @@ xmlFAGenerateTransitions(xmlRegParserCtxtPtr ctxt, xmlRegStatePtr from,
 	    default:
 		break;
 	}
+	if (xmlRegAtomPush(ctxt, atom) < 0)
+	    return(-1);
 	return(0);
     }
     if ((atom->min == 0) && (atom->max == 0) &&
@@ -1727,9 +1728,6 @@ xmlFAGenerateTransitions(xmlRegParserCtxtPtr ctxt, xmlRegStatePtr from,
 	xmlFAGenerateEpsilonTransition(ctxt, tmp, to);
 	to = tmp;
     }
-    if (xmlRegAtomPush(ctxt, atom) < 0) {
-	return(-1);
-    }
     if ((atom->quant == XML_REGEXP_QUANT_RANGE) &&
         (atom->min == 0) && (atom->max > 0)) {
 	nullable = 1;
@@ -1760,6 +1758,8 @@ xmlFAGenerateTransitions(xmlRegParserCtxtPtr ctxt, xmlRegStatePtr from,
 	default:
 	    break;
     }
+    if (xmlRegAtomPush(ctxt, atom) < 0)
+	return(-1);
     return(0);
 }
 
@@ -5351,8 +5351,12 @@ xmlFAParseBranch(xmlRegParserCtxtPtr ctxt, xmlRegStatePtr to) {
 	xmlFAGenerateEpsilonTransition(ctxt, previous, to);
     } else {
 	if (xmlFAGenerateTransitions(ctxt, previous,
-	        (CUR=='|' || CUR==')' || CUR==0) ? to : NULL, ctxt->atom) < 0)
+	        (CUR=='|' || CUR==')' || CUR==0) ? to : NULL,
+                ctxt->atom) < 0) {
+            xmlRegFreeAtom(ctxt->atom);
+            ctxt->atom = NULL;
 	    return(-1);
+        }
 	previous = ctxt->state;
 	ctxt->atom = NULL;
     }
@@ -5361,8 +5365,11 @@ xmlFAParseBranch(xmlRegParserCtxtPtr ctxt, xmlRegStatePtr to) {
 	if (ret != 0) {
 	    if (xmlFAGenerateTransitions(ctxt, previous,
 	            (CUR=='|' || CUR==')' || CUR==0) ? to : NULL,
-                    ctxt->atom) < 0)
-		    return(-1);
+                    ctxt->atom) < 0) {
+                xmlRegFreeAtom(ctxt->atom);
+                ctxt->atom = NULL;
+                return(-1);
+            }
 	    previous = ctxt->state;
 	    ctxt->atom = NULL;
 	}
@@ -5890,6 +5897,8 @@ xmlAutomataNewCountTrans2(xmlAutomataPtr am, xmlAutomataStatePtr from,
 	return(NULL);
     if ((token2 == NULL) || (*token2 == 0)) {
 	atom->valuep = xmlStrdup(token);
+        if (atom->valuep == NULL)
+            goto error;
     } else {
 	int lenn, lenp;
 	xmlChar *str;
@@ -5898,10 +5907,8 @@ xmlAutomataNewCountTrans2(xmlAutomataPtr am, xmlAutomataStatePtr from,
 	lenp = strlen((char *) token);
 
 	str = (xmlChar *) xmlMallocAtomic(lenn + lenp + 2);
-	if (str == NULL) {
-	    xmlRegFreeAtom(atom);
-	    return(NULL);
-	}
+	if (str == NULL)
+	    goto error;
 	memcpy(&str[0], token, lenp);
 	str[lenp] = '|';
 	memcpy(&str[lenp + 1], token2, lenn);
@@ -5927,10 +5934,11 @@ xmlAutomataNewCountTrans2(xmlAutomataPtr am, xmlAutomataStatePtr from,
     if (to == NULL) {
 	to = xmlRegStatePush(am);
         if (to == NULL)
-            return(NULL);
+            goto error;
     }
     xmlRegStateAddTrans(am, from, atom, to, counter, -1);
-    xmlRegAtomPush(am, atom);
+    if (xmlRegAtomPush(am, atom) < 0)
+        goto error;
     am->state = to;
 
     if (to == NULL)
@@ -5940,6 +5948,10 @@ xmlAutomataNewCountTrans2(xmlAutomataPtr am, xmlAutomataStatePtr from,
     if (min == 0)
 	xmlFAGenerateEpsilonTransition(am, from, to);
     return(to);
+
+error:
+    xmlRegFreeAtom(atom);
+    return(NULL);
 }
 
 /**
@@ -5976,6 +5988,8 @@ xmlAutomataNewCountTrans(xmlAutomataPtr am, xmlAutomataStatePtr from,
     if (atom == NULL)
 	return(NULL);
     atom->valuep = xmlStrdup(token);
+    if (atom->valuep == NULL)
+        goto error;
     atom->data = data;
     if (min == 0)
 	atom->min = 1;
@@ -5994,10 +6008,11 @@ xmlAutomataNewCountTrans(xmlAutomataPtr am, xmlAutomataStatePtr from,
     if (to == NULL) {
 	to = xmlRegStatePush(am);
         if (to == NULL)
-            return(NULL);
+            goto error;
     }
     xmlRegStateAddTrans(am, from, atom, to, counter, -1);
-    xmlRegAtomPush(am, atom);
+    if (xmlRegAtomPush(am, atom) < 0)
+        goto error;
     am->state = to;
 
     if (to == NULL)
@@ -6007,6 +6022,10 @@ xmlAutomataNewCountTrans(xmlAutomataPtr am, xmlAutomataStatePtr from,
     if (min == 0)
 	xmlFAGenerateEpsilonTransition(am, from, to);
     return(to);
+
+error:
+    xmlRegFreeAtom(atom);
+    return(NULL);
 }
 
 /**
@@ -6047,6 +6066,8 @@ xmlAutomataNewOnceTrans2(xmlAutomataPtr am, xmlAutomataStatePtr from,
 	return(NULL);
     if ((token2 == NULL) || (*token2 == 0)) {
 	atom->valuep = xmlStrdup(token);
+        if (atom->valuep == NULL)
+            goto error;
     } else {
 	int lenn, lenp;
 	xmlChar *str;
@@ -6055,10 +6076,8 @@ xmlAutomataNewOnceTrans2(xmlAutomataPtr am, xmlAutomataStatePtr from,
 	lenp = strlen((char *) token);
 
 	str = (xmlChar *) xmlMallocAtomic(lenn + lenp + 2);
-	if (str == NULL) {
-	    xmlRegFreeAtom(atom);
-	    return(NULL);
-	}
+	if (str == NULL)
+	    goto error;
 	memcpy(&str[0], token, lenp);
 	str[lenp] = '|';
 	memcpy(&str[lenp + 1], token2, lenn);
@@ -6081,12 +6100,17 @@ xmlAutomataNewOnceTrans2(xmlAutomataPtr am, xmlAutomataStatePtr from,
     if (to == NULL) {
 	to = xmlRegStatePush(am);
         if (to == NULL)
-            return(NULL);
+            goto error;
     }
     xmlRegStateAddTrans(am, from, atom, to, counter, -1);
-    xmlRegAtomPush(am, atom);
+    if (xmlRegAtomPush(am, atom) < 0)
+        goto error;
     am->state = to;
     return(to);
+
+error:
+    xmlRegFreeAtom(atom);
+    return(NULL);
 }
 
 
@@ -6141,12 +6165,17 @@ xmlAutomataNewOnceTrans(xmlAutomataPtr am, xmlAutomataStatePtr from,
     if (to == NULL) {
 	to = xmlRegStatePush(am);
         if (to == NULL)
-            return(NULL);
+            goto error;
     }
     xmlRegStateAddTrans(am, from, atom, to, counter, -1);
-    xmlRegAtomPush(am, atom);
+    if (xmlRegAtomPush(am, atom) < 0)
+        goto error;
     am->state = to;
     return(to);
+
+error:
+    xmlRegFreeAtom(atom);
+    return(NULL);
 }
 
 /**
