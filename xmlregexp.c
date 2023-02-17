@@ -5463,7 +5463,7 @@ xmlRegexpPrint(FILE *output, xmlRegexpPtr regexp) {
  */
 xmlRegexpPtr
 xmlRegexpCompile(const xmlChar *regexp) {
-    xmlRegexpPtr ret;
+    xmlRegexpPtr ret = NULL;
     xmlRegParserCtxtPtr ctxt;
 
     ctxt = xmlRegNewParserCtxt(regexp);
@@ -5473,7 +5473,7 @@ xmlRegexpCompile(const xmlChar *regexp) {
     /* initialize the parser */
     ctxt->state = xmlRegStatePush(ctxt);
     if (ctxt->state == NULL)
-        return(NULL);
+        goto error;
     ctxt->start = ctxt->state;
     ctxt->end = NULL;
 
@@ -5482,10 +5482,8 @@ xmlRegexpCompile(const xmlChar *regexp) {
     if (CUR != 0) {
 	ERROR("xmlFAParseRegExp: extra characters");
     }
-    if (ctxt->error != 0) {
-	xmlRegFreeParserCtxt(ctxt);
-	return(NULL);
-    }
+    if (ctxt->error != 0)
+        goto error;
     ctxt->end = ctxt->state;
     ctxt->start->type = XML_REGEXP_START_STATE;
     ctxt->end->type = XML_REGEXP_FINAL_STATE;
@@ -5494,11 +5492,11 @@ xmlRegexpCompile(const xmlChar *regexp) {
     xmlFAEliminateEpsilonTransitions(ctxt);
 
 
-    if (ctxt->error != 0) {
-	xmlRegFreeParserCtxt(ctxt);
-	return(NULL);
-    }
+    if (ctxt->error != 0)
+        goto error;
     ret = xmlRegEpxFromParse(ctxt);
+
+error:
     xmlRegFreeParserCtxt(ctxt);
     return(ret);
 }
