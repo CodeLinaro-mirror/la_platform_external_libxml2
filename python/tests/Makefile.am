@@ -1,5 +1,5 @@
 exampledir = $(docdir)/python/examples
-dist_example_DATA = $(PYTESTS) $(XMLS)
+dist_example_DATA = $(PYTESTS) $(XMLS) setup_test.py
 
 PYTESTS=	\
     build.py	\
@@ -62,7 +62,8 @@ if WITH_PYTHON
 check-local:
 	@for f in $(XMLS) ; do test -f $$f || $(LN_S) $(srcdir)/$$f . ; done
 	@echo "## running Python regression tests"
-	@(export LD_LIBRARY_PATH="$(top_builddir)/.libs:$$LD_LIBRARY_PATH" ; \
+	@(export PYTHONPATH="..:../.libs:$(srcdir)/..:$$PYTHONPATH" ; \
+	  export LD_LIBRARY_PATH="$(top_builddir)/.libs:$$LD_LIBRARY_PATH" ; \
 	  export DYLD_LIBRARY_PATH="$(top_builddir)/.libs:$$DYLD_LIBRARY_PATH" ; \
 	  export PATH="$(top_builddir)/.libs:$$PATH" ; \
 	  for test in $(PYTESTS) ; do \
