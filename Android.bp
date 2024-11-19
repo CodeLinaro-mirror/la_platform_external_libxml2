@@ -164,6 +164,7 @@ cc_library {
         "com.android.nfcservices",
         "com.android.uwb",
         "com.android.virt",
+        "com.android.btservices",
     ],
     min_sdk_version: "apex_inherit",
 }
