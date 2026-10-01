@@ -13,6 +13,9 @@ third_party {
   license_note: "contains GFDL documentation"
   security {
     tag: "NVD-CPE2.3:cpe:/a:xmlsoft:libxml2:2.9.2:-"
+    tag: "android:on_device_usage"
+    tag: "android:privilege_level:privileged"
+    tag: "android:untrusted_input"
   }
   last_upgrade_date {
     year: 2026
