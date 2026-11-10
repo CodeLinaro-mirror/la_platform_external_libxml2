@@ -159,6 +159,9 @@ cc_library {
     },
     apex_available: [
         "//apex_available:platform",
+        // TODO(b/491389671): Temporary allowlist for repackaging legacy ImsStack;
+        // remove com.android.imscore once ImsStack drops its libxml2 dependency.
+        "com.android.imscore",
         "com.android.nfcservices",
         "com.android.uwb",
         "com.android.virt",
