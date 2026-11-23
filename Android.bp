@@ -123,7 +123,6 @@ cc_defaults {
     ],
     static: {
         cflags: [
-            "-DSTATIC_LIBXML=1",
             "-fvisibility=hidden",
         ],
     },
@@ -136,34 +135,12 @@ cc_library {
     product_available: true,
     ota_recovery_ramdisk_available: true,
     host_supported: true,
-    target: {
-        android: {
-            shared_libs: ["libandroidicu"],
-        },
-        host: {
-            shared_libs: [
-                "libicui18n",
-                "libicuuc",
-            ],
-            export_shared_lib_headers: [
-                "libicui18n",
-                "libicuuc",
-            ],
-        },
-        vendor: {
-            exclude_shared_libs: ["libandroidicu"],
-        },
-        product: {
-            exclude_shared_libs: ["libandroidicu"],
-        },
-    },
     apex_available: [
         "//apex_available:platform",
         // TODO(b/491389671): Temporary allowlist for repackaging legacy ImsStack;
         // remove com.android.imscore once ImsStack drops its libxml2 dependency.
         "com.android.imscore",
         "com.android.nfcservices",
-        "com.android.uwb",
         "com.android.virt",
     ],
     min_sdk_version: "apex_inherit",
